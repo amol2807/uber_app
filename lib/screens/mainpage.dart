@@ -2,10 +2,14 @@ import 'dart:async';
 
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
+import 'package:geolocator/geolocator.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
 import 'package:outline_material_icons/outline_material_icons.dart';
+import 'package:provider/provider.dart';
 import 'package:uber_app/Widgets/BrandDivider.dart';
 import 'package:uber_app/brand_colors.dart';
+import 'package:uber_app/dataproviders/appdata.dart';
+import 'package:uber_app/helpers/helpermethods.dart';
 import 'package:uber_app/styles/styles.dart';
 
 class MainPage extends StatefulWidget {
@@ -22,6 +26,19 @@ class _MainPageState extends State<MainPage> {
   GoogleMapController mapController;
   double mapBottomPadding = 0;
 
+
+  Position currentPosition;
+  void setupPositionLocator() async {
+    Position position= await Geolocator.getCurrentPosition(desiredAccuracy: LocationAccuracy.bestForNavigation);
+    currentPosition=position;
+
+    LatLng pos=LatLng(position.latitude, position.longitude);
+    CameraPosition cp=new CameraPosition(target: pos,zoom: 14);
+    mapController.animateCamera(CameraUpdate.newCameraPosition(cp));
+
+    String address=await HelperMethods.findCordinateAddress(position,context);
+    print(address);
+  }
   static final CameraPosition _kGooglePlex = CameraPosition(
     target: LatLng(37.42796133580664, -122.085749655962),
     zoom: 14.4746,
@@ -125,6 +142,9 @@ class _MainPageState extends State<MainPage> {
             mapType: MapType.normal,
             myLocationButtonEnabled: true,
             initialCameraPosition: _kGooglePlex,
+            myLocationEnabled: true,
+            zoomGesturesEnabled: true,
+            zoomControlsEnabled: true,
             onMapCreated: (GoogleMapController controller) {
               _controller.complete(controller);
               mapController = controller;
@@ -132,6 +152,7 @@ class _MainPageState extends State<MainPage> {
               setState(() {
                 mapBottomPadding = 275;
               });
+              setupPositionLocator();
             },
           ),
 
@@ -262,7 +283,9 @@ class _MainPageState extends State<MainPage> {
                         Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: <Widget>[
-                            Text('Add Home'),
+                            Text((Provider.of<AppData>(context).pickupAddress!=null)
+                                ?Provider.of<AppData>(context).pickupAddress.placeName
+                                :'Add Home'),
                             SizedBox(
                               height: 3,
                             ),
