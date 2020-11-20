@@ -2,10 +2,13 @@ import 'dart:async';
 
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
+import 'package:geolocator/geolocator.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
 import 'package:outline_material_icons/outline_material_icons.dart';
 import 'package:uber_app/Widgets/BrandDivider.dart';
 import 'package:uber_app/brand_colors.dart';
+import 'package:uber_app/helpers/helpermethods.dart';
+import 'package:uber_app/screens/searchpage.dart';
 import 'package:uber_app/styles/styles.dart';
 
 class MainPage extends StatefulWidget {
@@ -21,6 +24,21 @@ class _MainPageState extends State<MainPage> {
   Completer<GoogleMapController> _controller = Completer();
   GoogleMapController mapController;
   double mapBottomPadding = 0;
+  var geoLocator = Geolocator();
+  Position currentPosition;
+
+  void setUpPositionLocator() async {
+    Position position = await Geolocator.getCurrentPosition(
+        desiredAccuracy: LocationAccuracy.best);
+    currentPosition = position;
+    LatLng pos = LatLng(position.latitude, position.longitude);
+    CameraPosition cameraPosition = new CameraPosition(target: pos, zoom: 14.0);
+    mapController.animateCamera(CameraUpdate.newCameraPosition(cameraPosition));
+
+    String address =
+        await HelperMethods.findCoordinateAddress(position, context);
+    print(address);
+  }
 
   static final CameraPosition _kGooglePlex = CameraPosition(
     target: LatLng(37.42796133580664, -122.085749655962),
@@ -125,6 +143,9 @@ class _MainPageState extends State<MainPage> {
             mapType: MapType.normal,
             myLocationButtonEnabled: true,
             initialCameraPosition: _kGooglePlex,
+            myLocationEnabled: true,
+            zoomControlsEnabled: true,
+            zoomGesturesEnabled: true,
             onMapCreated: (GoogleMapController controller) {
               _controller.complete(controller);
               mapController = controller;
@@ -132,6 +153,8 @@ class _MainPageState extends State<MainPage> {
               setState(() {
                 mapBottomPadding = 275;
               });
+
+              setUpPositionLocator();
             },
           ),
 
@@ -215,35 +238,43 @@ class _MainPageState extends State<MainPage> {
                     SizedBox(
                       height: 20.0,
                     ),
-                    Container(
-                      decoration: BoxDecoration(
-                        color: Colors.white,
-                        borderRadius: BorderRadius.circular(4),
-                        boxShadow: [
-                          BoxShadow(
-                            color: Colors.black12,
-                            blurRadius: 5.0,
-                            spreadRadius: 0.5,
-                            offset: Offset(
-                              7.0,
-                              7.0,
+                    GestureDetector(
+                      onTap: () {
+                        Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                                builder: (context) => SearchPage()));
+                      },
+                      child: Container(
+                        decoration: BoxDecoration(
+                          color: Colors.white,
+                          borderRadius: BorderRadius.circular(4),
+                          boxShadow: [
+                            BoxShadow(
+                              color: Colors.black12,
+                              blurRadius: 5.0,
+                              spreadRadius: 0.5,
+                              offset: Offset(
+                                7.0,
+                                7.0,
+                              ),
                             ),
-                          ),
-                        ],
-                      ),
-                      child: Padding(
-                        padding: const EdgeInsets.all(12.0),
-                        child: Row(
-                          children: <Widget>[
-                            Icon(
-                              Icons.search,
-                              color: Colors.blueAccent,
-                            ),
-                            SizedBox(
-                              width: 10.0,
-                            ),
-                            Text('Search Destination'),
                           ],
+                        ),
+                        child: Padding(
+                          padding: const EdgeInsets.all(12.0),
+                          child: Row(
+                            children: <Widget>[
+                              Icon(
+                                Icons.search,
+                                color: Colors.blueAccent,
+                              ),
+                              SizedBox(
+                                width: 10.0,
+                              ),
+                              Text('Search Destination'),
+                            ],
+                          ),
                         ),
                       ),
                     ),
@@ -263,9 +294,6 @@ class _MainPageState extends State<MainPage> {
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: <Widget>[
                             Text('Add Home'),
-                            SizedBox(
-                              height: 3,
-                            ),
                             Text(
                               'Your residential address',
                               style: TextStyle(

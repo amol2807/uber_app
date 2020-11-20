@@ -29,6 +29,12 @@ dependencies:
   connectivity: ^2.0.2
   google_maps_flutter: ^0.5.28
   outline_material_icons: ^0.1.1
+  geolocator: ^6.1.7
+  http: ^0.12.2
+  provider: ^4.3.2+2
+
+
+
 
 
 
