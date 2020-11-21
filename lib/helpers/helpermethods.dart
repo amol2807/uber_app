@@ -41,7 +41,9 @@ String url = 'https://maps.googleapis.com/maps/api/geocode/json?latlng=${positio
  //https://maps.googleapis.com/maps/api/place/autocomplete/json?input=Time Square&key=AIzaSyCGDOgE33dc-6UHtIAptXSAVZRogFvV8Hs&sessiontoken=123254251&components=country:us
     }
     static Future<DirectionDetails> getDirectionDetails(LatLng startPosition, LatLng endPosition) async {
-      String url = 'https://maps.googleapis.com/maps/api/directions/json?origin=${startPosition.latitude},${startPosition.longitude}&destination=${endPosition.latitude},${endPosition.longitude}&mode=driving&key=AIzaSyCGDOgE33dc-6UHtIAptXSAVZRogFvV8Hs';
+   String url =
+'https://maps.googleapis.com/maps/api/directions/json?origin=${startPosition.latitude},${startPosition.longitude}&destination=${endPosition.latitude},${endPosition.longitude}&mode=driving&key=AIzaSyCGDOgE33dc-6UHtIAptXSAVZRogFvV8Hs';
+
       var response = await RequestHelper.getRequest(url);
       if (response == 'failed')
       {
@@ -49,11 +51,39 @@ String url = 'https://maps.googleapis.com/maps/api/geocode/json?latlng=${positio
         return null;
       }
       DirectionDetails directionDetails=DirectionDetails();
-      directionDetails.durationText=response['routes'][0]['legs'][0]['steps'][0]['duration']['text'];
-      directionDetails.durationValue=response['routes'][0]['legs'][0]['steps'][0]['duration']['value'];
-      directionDetails.distanceText=response['routes'][0]['legs'][0]['steps'][0]['distance']['text'];
-      directionDetails.distanceValue=response['routes'][0]['legs'][0]['steps'][0]['distance']['value'];
+      directionDetails.durationText=response['routes'][0]['legs'][0]['duration']['text'];
+      directionDetails.durationValue=response['routes'][0]['legs'][0]['duration']['value'];
+      directionDetails.distanceText=response['routes'][0]['legs'][0]['distance']['text'];
+      directionDetails.distanceValue=response['routes'][0]['legs'][0]['distance']['value'];
       directionDetails.encodedPoints=response['routes'][0]['overview_polyline']['points'];
       return directionDetails;
     }
+
+    static int estimateFares(DirectionDetails details)
+    {
+      //per km = 0.3$
+      //per min = 0.2$
+      //base fare = 3$
+      double baseFare = 3;
+      double distanceFare = (details.distanceValue/1000)*0.3;
+      print('Distant to Pune is ${details.distanceValue}');
+      print('TIME to Pune is ${details.durationValue}');
+      double timeFare = (details.durationValue/60)*0.2;
+      double totalFare = baseFare + distanceFare + timeFare;
+      print('BaseFare is ${baseFare}');
+      print(timeFare);
+      print(distanceFare);
+      print(totalFare);
+
+      return totalFare.truncate();
+
+    }
+
+
+
+
+
+
+
+
 }
