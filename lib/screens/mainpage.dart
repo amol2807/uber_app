@@ -5,8 +5,11 @@ import 'package:flutter/material.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
 import 'package:outline_material_icons/outline_material_icons.dart';
+import 'package:provider/provider.dart';
 import 'package:uber_app/Widgets/BrandDivider.dart';
+import 'package:uber_app/Widgets/progressdialogue.dart';
 import 'package:uber_app/brand_colors.dart';
+import 'package:uber_app/dataprovider/appdata.dart';
 import 'package:uber_app/helpers/helpermethods.dart';
 import 'package:uber_app/screens/searchpage.dart';
 import 'package:uber_app/styles/styles.dart';
@@ -24,6 +27,7 @@ class _MainPageState extends State<MainPage> {
   Completer<GoogleMapController> _controller = Completer();
   GoogleMapController mapController;
   double mapBottomPadding = 0;
+
   var geoLocator = Geolocator();
   Position currentPosition;
 
@@ -39,7 +43,6 @@ class _MainPageState extends State<MainPage> {
         await HelperMethods.findCoordinateAddress(position, context);
     print(address);
   }
-
   static final CameraPosition _kGooglePlex = CameraPosition(
     target: LatLng(37.42796133580664, -122.085749655962),
     zoom: 14.4746,
@@ -239,11 +242,15 @@ class _MainPageState extends State<MainPage> {
                       height: 20.0,
                     ),
                     GestureDetector(
-                      onTap: () {
-                        Navigator.push(
+                      onTap: () async{
+                        var response=await Navigator.push(
                             context,
                             MaterialPageRoute(
                                 builder: (context) => SearchPage()));
+
+                        if(response=='getDirection'){
+                          await getDirection();
+                        }
                       },
                       child: Container(
                         decoration: BoxDecoration(
@@ -347,5 +354,21 @@ class _MainPageState extends State<MainPage> {
         ],
       ),
     );
+  }
+
+  Future<void> getDirection()async{
+    var pickup=Provider.of<AppData>(context,listen: false).pickUpAddress;
+    var destination=Provider.of<AppData>(context,listen: false).destinationAddress;
+
+    var pickLatLng=LatLng(pickup.latitude, pickup.longitude);
+    var destinationLatLng=LatLng(destination.latitude, destination.longitude);
+
+    showDialog(barrierDismissible:false,
+      context: context,
+        builder:(BuildContext context)=>ProgressDialogue(status: "Please Wait",)
+    );
+    var thisDetails=await HelperMethods.getDirectionDetails(pickLatLng, destinationLatLng);
+    Navigator.pop(context);
+    print(thisDetails.encodedPoints);
   }
 }
