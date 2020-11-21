@@ -2,6 +2,7 @@ import 'dart:async';
 
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_polyline_points/flutter_polyline_points.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
 import 'package:outline_material_icons/outline_material_icons.dart';
@@ -27,6 +28,11 @@ class _MainPageState extends State<MainPage> {
   Completer<GoogleMapController> _controller = Completer();
   GoogleMapController mapController;
   double mapBottomPadding = 0;
+
+  List<LatLng> polylineCoordinates=[];
+  Set<Polyline> _polylines={};
+  Set<Marker> _Markers={};
+  Set<Circle> _Circles={};
 
   var geoLocator = Geolocator();
   Position currentPosition;
@@ -149,6 +155,9 @@ class _MainPageState extends State<MainPage> {
             myLocationEnabled: true,
             zoomControlsEnabled: true,
             zoomGesturesEnabled: true,
+            polylines: _polylines,
+            markers: _Markers,
+            circles: _Circles,
             onMapCreated: (GoogleMapController controller) {
               _controller.complete(controller);
               mapController = controller;
@@ -356,19 +365,119 @@ class _MainPageState extends State<MainPage> {
     );
   }
 
-  Future<void> getDirection()async{
-    var pickup=Provider.of<AppData>(context,listen: false).pickUpAddress;
-    var destination=Provider.of<AppData>(context,listen: false).destinationAddress;
+  Future<void> getDirection()async {
+    var pickup = Provider
+        .of<AppData>(context, listen: false)
+        .pickUpAddress;
+    var destination = Provider
+        .of<AppData>(context, listen: false)
+        .destinationAddress;
 
-    var pickLatLng=LatLng(pickup.latitude, pickup.longitude);
-    var destinationLatLng=LatLng(destination.latitude, destination.longitude);
+    var pickLatLng = LatLng(pickup.latitude, pickup.longitude);
+    var destinationLatLng = LatLng(destination.latitude, destination.longitude);
 
-    showDialog(barrierDismissible:false,
-      context: context,
-        builder:(BuildContext context)=>ProgressDialogue(status: "Please Wait",)
+    showDialog(barrierDismissible: false,
+        context: context,
+        builder: (BuildContext context) =>
+            ProgressDialogue(status: "Please Wait",)
     );
-    var thisDetails=await HelperMethods.getDirectionDetails(pickLatLng, destinationLatLng);
+
+
+    var thisDetails = await HelperMethods.getDirectionDetails(
+        pickLatLng, destinationLatLng);
     Navigator.pop(context);
-    print(thisDetails.encodedPoints);
+
+    PolylinePoints polylinePoints = PolylinePoints();
+    List<PointLatLng> results = polylinePoints.decodePolyline(
+        thisDetails.encodedPoints);
+
+    polylineCoordinates.clear();
+
+    if (results.isNotEmpty) {
+      //loop through all PointLatLng points and convert them to a list of LatLng, required by the Polyline
+
+      results.forEach((PointLatLng point) {
+        polylineCoordinates.add(LatLng(point.latitude, point.longitude));
+      });
+    }
+    _polylines.clear();
+
+    setState(() {
+      Polyline polyline = Polyline(
+        polylineId: PolylineId('polyid'),
+        color: Color.fromARGB(255, 95, 109, 237),
+        points: polylineCoordinates,
+        jointType: JointType.round,
+        width: 4,
+        startCap: Cap.roundCap,
+        endCap: Cap.roundCap,
+        geodesic: true,
+      );
+
+      _polylines.add(polyline);
+    });
+
+    //make polyline to fit into the map
+    LatLngBounds bounds;
+
+    if (pickLatLng.latitude > destinationLatLng.latitude && pickLatLng.longitude > destinationLatLng.longitude) {
+      bounds=LatLngBounds(southwest: destinationLatLng, northeast: pickLatLng);
+    }
+    else if(pickLatLng.longitude > destinationLatLng.longitude){
+      bounds=LatLngBounds(
+          southwest: LatLng(pickLatLng.latitude,destinationLatLng.longitude),
+          northeast: LatLng(destinationLatLng.latitude,pickLatLng.longitude));
+    }
+    else if(pickLatLng.latitude > destinationLatLng.latitude){
+      bounds=LatLngBounds(
+          southwest: LatLng(destinationLatLng.latitude,pickLatLng.longitude),
+          northeast: LatLng(pickLatLng.latitude,destinationLatLng.longitude));
+    }
+    else{
+      bounds=LatLngBounds(southwest: pickLatLng, northeast: destinationLatLng);
+    }
+    mapController.animateCamera(CameraUpdate.newLatLngBounds(bounds, 70));
+
+    Marker pickupMarker=Marker(
+      markerId: MarkerId('pickup'),
+      position: pickLatLng,
+      icon: BitmapDescriptor.defaultMarkerWithHue(BitmapDescriptor.hueGreen),
+      infoWindow: InfoWindow(title: pickup.placeName,snippet: 'My Location'),
+    );
+
+    Marker destinationMarker=Marker(
+      markerId: MarkerId('destination'),
+      position: destinationLatLng,
+      icon: BitmapDescriptor.defaultMarkerWithHue(BitmapDescriptor.hueRed),
+      infoWindow: InfoWindow(title: destination.placeName,snippet: 'Destination'),
+    );
+
+    setState(() {
+      _Markers.add(pickupMarker);
+      _Markers.add(destinationMarker);
+    });
+
+    Circle pickupCircle=Circle(
+      circleId: CircleId('pickup'),
+      strokeColor: Colors.green,
+      strokeWidth: 3,
+      radius: 12,
+      center: pickLatLng,
+      fillColor: BrandColors.colorGreen,
+    );
+
+    Circle destinationCircle=Circle(
+      circleId: CircleId('destination'),
+      strokeColor: BrandColors.colorAccentPurple,
+      strokeWidth: 3,
+      radius: 12,
+      center: destinationLatLng,
+      fillColor: BrandColors.colorAccentPurple,
+    );
+
+    setState(() {
+      _Circles.add(pickupCircle);
+      _Circles.add(destinationCircle);
+    });
   }
 }

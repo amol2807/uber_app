@@ -29,8 +29,8 @@ String url = 'https://maps.googleapis.com/maps/api/geocode/json?latlng=${positio
        placeaddress = response['results'][0]['formatted_address'];
 
        Address pickUpAddress = new Address();
-       pickUpAddress.longitude = position.latitude;
-       pickUpAddress.latitude = position.longitude;
+       pickUpAddress.longitude = position.longitude;
+       pickUpAddress.latitude = position.latitude;
        pickUpAddress.placeName = placeaddress;
 
        Provider.of<AppData>(context,listen: false).updatePickUpAddress(pickUpAddress);
