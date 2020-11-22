@@ -1,17 +1,32 @@
 import 'package:connectivity/connectivity.dart';
+import 'package:firebase_auth/firebase_auth.dart';
+import 'package:firebase_database/firebase_database.dart';
 import 'package:flutter/material.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
 import 'package:http/http.dart';
 import 'package:provider/provider.dart';
 import 'package:uber_app/datamodels/address.dart';
+import 'package:uber_app/datamodels/user.dart';
 import 'package:uber_app/datamodels/directiondetails.dart';
 import 'package:uber_app/dataprovider/appdata.dart';
 import 'package:uber_app/globalvariables.dart';
 import 'package:uber_app/helpers/RequestHelper.dart';
 
 class HelperMethods{
+  static void getCurrentUserInfo() async{
+    currentFirebaseUser = FirebaseAuth.instance.currentUser;
+    String userid=currentFirebaseUser.uid;
 
+    DatabaseReference userRef=FirebaseDatabase().reference().child('users/$userid');
+    userRef.once().then((DataSnapshot snapshot){
+
+      if(snapshot.value!=null){
+        currentUserInfo=CabUser.fromSnapshot(snapshot);
+        print('my name is ${currentUserInfo.fullName}');
+      }
+    });
+  }
   static Future<String> findCoordinateAddress(Position position, context) async{
 
     String placeaddress = '';
@@ -58,7 +73,6 @@ String url = 'https://maps.googleapis.com/maps/api/geocode/json?latlng=${positio
       directionDetails.encodedPoints=response['routes'][0]['overview_polyline']['points'];
       return directionDetails;
     }
-
     static int estimateFares(DirectionDetails details)
     {
       //per km = 0.3$
@@ -78,12 +92,5 @@ String url = 'https://maps.googleapis.com/maps/api/geocode/json?latlng=${positio
       return totalFare.truncate();
 
     }
-
-
-
-
-
-
-
 
 }
