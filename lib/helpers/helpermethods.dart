@@ -1,3 +1,5 @@
+import 'dart:math';
+
 import 'package:connectivity/connectivity.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_database/firebase_database.dart';
@@ -91,6 +93,13 @@ String url = 'https://maps.googleapis.com/maps/api/geocode/json?latlng=${positio
 
       return totalFare.truncate();
 
+    }
+    static double generateRandomNumber(int max)
+    {
+      var randomGenerator=Random();
+      int radInt=randomGenerator.nextInt(max);
+
+      return radInt.toDouble();
     }
 
 }
